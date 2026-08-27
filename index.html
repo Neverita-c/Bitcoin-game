@@ -1,1 +1,813 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0e0b08">
+<title>Золотая лихорадка — крипто-кликер</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;900&family=JetBrains+Mono:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0e0b08;
+    --bg-side:#070504;
+    --panel:#151109;
+    --panel2:#1b150d;
+    --row:#171209;
+    --line:#2b2214;
+    --line-soft:rgba(255,198,92,.09);
+    --text:#f2ead9;
+    --muted:#9a8b74;
+    --gold:#f0b13a;
+    --gold-hi:#ffd76a;
+    --gold-dim:#cfa64f;
+    --deep:#8a5510;
+    --bad:#e2604f;
+    --coin:min(clamp(172px,55vw,290px), calc(100dvh - 420px));
+    --mono:'JetBrains Mono',ui-monospace,monospace;
+    --disp:'Unbounded',sans-serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%}
+  body{
+    background:var(--bg-side);
+    color:var(--text);
+    font-family:var(--mono);
+    overscroll-behavior:none;
+    -webkit-user-select:none;user-select:none;
+    display:flex;justify-content:center;
+    touch-action:manipulation;
+  }
 
+  /* ===== Каркас приложения ===== */
+  #app{
+    width:min(560px,100%);
+    height:100vh;height:100dvh;
+    background:var(--bg);
+    border-left:1px solid rgba(255,200,100,.05);
+    border-right:1px solid rgba(255,200,100,.05);
+    display:flex;flex-direction:column;
+    overflow:hidden;
+  }
+
+  /* ===== Шапка ===== */
+  header{
+    display:flex;align-items:center;gap:10px;
+    padding:calc(env(safe-area-inset-top) + 12px) 18px 10px;
+    border-bottom:1px solid var(--line-soft);
+  }
+  header .brand-ic{width:17px;height:17px;color:var(--gold)}
+  header h1{
+    font:700 10.5px var(--disp);
+    letter-spacing:.3em;text-transform:uppercase;
+    color:var(--gold-dim);
+  }
+  header .ver{
+    margin-left:auto;font-size:10px;color:#584c3b;letter-spacing:.1em;
+  }
+
+  /* ===== Баланс ===== */
+  .stats{padding:14px 16px 4px;text-align:center;flex-shrink:0}
+  .bal{
+    display:flex;align-items:center;justify-content:center;gap:10px;
+    font:800 clamp(32px,9vw,44px)/1 var(--mono);
+    letter-spacing:-.02em;
+    font-variant-numeric:tabular-nums;
+  }
+  .bal .glyph{width:.62em;height:.62em;transform:translateY(2px)}
+  .sub{
+    margin-top:9px;display:flex;justify-content:center;gap:7px;align-items:center;
+    font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;
+  }
+  .sub b{color:var(--gold);font-weight:600}
+  .sub svg{width:13px;height:13px;position:relative;top:2px}
+  .dot{color:#43372a;margin:0 3px}
+
+  /* ===== Игровое поле ===== */
+  .pf{
+    position:relative;flex:1;min-height:200px;
+    display:grid;place-items:center;
+    overflow:hidden;
+  }
+  .rings{position:absolute;border-radius:50%;border:1px solid rgba(255,220,150,.045);pointer-events:none}
+  .rings.r1{width:min(130vw,560px);aspect-ratio:1}
+  .rings.r2{width:min(175vw,760px);aspect-ratio:1;border-color:rgba(255,220,150,.03)}
+  .halo{
+    position:absolute;width:calc(var(--coin)*1.7);aspect-ratio:1;border-radius:50%;
+    background:radial-gradient(circle,rgba(255,185,60,.13),rgba(255,185,60,.04) 45%,transparent 70%);
+    animation:breathe 4.5s ease-in-out infinite alternate;pointer-events:none;
+    z-index:1;
+  }
+  @keyframes breathe{from{transform:scale(1);opacity:.85}to{transform:scale(1.08);opacity:1}}
+
+  /* ===== Орбиты улучшений ===== */
+  #orbits{position:absolute;inset:0;pointer-events:none;z-index:3}
+  .orbit{position:absolute;left:50%;top:50%;width:0;height:0}
+  .orb-spin{
+    position:absolute;left:0;top:0;width:0;height:0;
+    animation:spin var(--d) linear infinite;
+    animation-direction:var(--dir);
+    will-change:transform;
+  }
+  @keyframes spinN{to{transform:rotate(-360deg)}}
+  .o-cursor{color:#ffd98a}
+  .o-gpu{color:#e2b155}
+  .o-farm{color:#cf9540}
+  .o-asic{color:#ffe3a3;filter:drop-shadow(0 0 7px rgba(255,208,105,.38))}
+  .orb-sprite{
+    position:absolute;left:0;top:0;display:block;
+    transform:rotate(var(--a)) translateY(calc(-1 * var(--r) + var(--jit,0px)));
+  }
+  .ccw{
+    display:block;width:0;height:0;
+    animation:spinN var(--d) linear infinite;
+    animation-direction:var(--dir);
+    will-change:transform;
+  }
+  .orb-sprite svg{
+    display:block;width:var(--sz);height:var(--sz);
+    overflow:visible;
+    transform:rotate(calc(-1 * var(--a)));
+    filter:drop-shadow(0 3px 5px rgba(0,0,0,.5));
+  }
+  .bob{display:block;animation:bobI var(--bd,3.4s) ease-in-out var(--bdel,0s) infinite}
+  @keyframes bobI{0%,100%{transform:translateY(2.5px)}50%{transform:translateY(-3px)}}
+  .pop{
+    animation:popI .55s cubic-bezier(.3,1.65,.5,1) both,
+              bobI var(--bd,3.4s) ease-in-out .55s infinite;
+  }
+  @keyframes popI{from{transform:scale(0)}70%{transform:scale(1.35)}to{transform:scale(1)}}
+  @media (prefers-reduced-motion:reduce){#orbits{display:none}}
+
+  /* ===== Монета ===== */
+  .coin{
+    position:relative;z-index:2;
+    width:var(--coin);height:var(--coin);
+    background:none;border:none;padding:0;cursor:pointer;
+    filter:drop-shadow(0 16px 26px rgba(0,0,0,.5));
+    touch-action:none;-webkit-touch-callout:none;
+    transition:transform .26s cubic-bezier(.2,2.4,.5,1);
+  }
+  .coin.pressed{transition:transform .07s ease-out;transform:scale(.92)}
+  .stack{position:absolute;inset:0;animation:bob 3.6s ease-in-out infinite}
+  @keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+  .ring{
+    position:absolute;inset:-8.5%;border-radius:50%;
+    border:2px dashed rgba(240,177,58,.32);
+    animation:spin 46s linear infinite;
+  }
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .disc{position:absolute;inset:0;border-radius:50%;
+    box-shadow:inset 0 0 0 1px rgba(60,30,0,.6);}
+  .edge{position:absolute;inset:0;border-radius:50%;
+    background:repeating-conic-gradient(#e3a32c 0 5deg,#a8711a 5deg 10deg);}
+  .face{
+    position:absolute;inset:6.5%;border-radius:50%;overflow:hidden;
+    display:grid;place-items:center;
+    background:radial-gradient(circle at 33% 28%,#ffe28a,#f5b73b 46%,#cd851d 78%,#8f5a12 100%);
+  }
+  .face::after{
+    content:'';position:absolute;inset:6%;border-radius:50%;
+    border:2px solid rgba(118,70,8,.38);
+    box-shadow:inset 0 3px 8px rgba(90,50,0,.28), inset 0 -2px 5px rgba(255,235,170,.25);
+  }
+  .face .sheen{
+    position:absolute;top:-25%;left:0;width:44%;height:150%;
+    background:linear-gradient(90deg,transparent,rgba(255,255,255,.27),transparent);
+    transform:translateX(-160%) rotate(14deg);
+    animation:sheen 5.8s ease-in-out infinite;
+  }
+  @keyframes sheen{0%,68%{transform:translateX(-160%) rotate(14deg)}94%,100%{transform:translateX(280%) rotate(14deg)}}
+  .mark{
+    position:relative;font:900 calc(var(--coin)*.36)/1 var(--disp);
+    color:#7c4d0c;
+    text-shadow:0 -1px 0 rgba(110,62,0,.85),0 2px 1px rgba(255,232,158,.6);
+  }
+  .mark::before,.mark::after{
+    content:'';position:absolute;left:49%;transform:translateX(-50%);
+    width:.075em;height:.15em;background:#7c4d0c;border-radius:1px;
+    box-shadow:0 1px 0 rgba(255,232,158,.5);
+  }
+  .mark::before{top:-.115em}
+  .mark::after{bottom:-.115em}
+
+  /* ===== Всплывающий FX ===== */
+  #fx{position:absolute;inset:0;pointer-events:none;z-index:5}
+  .float{
+    position:absolute;transform:translate(-50%,-50%);
+    font:700 21px var(--mono);color:var(--gold-hi);
+    text-shadow:0 2px 6px rgba(0,0,0,.6);
+    animation:rise 1.05s cubic-bezier(.2,.7,.3,1) forwards;white-space:nowrap;
+  }
+  .float.minor{font-size:15px;color:#caa155;opacity:.8;font-weight:600}
+  @keyframes rise{
+    0%{opacity:0;transform:translate(calc(-50% + var(--dx,0px)),-50%) scale(.7)}
+    14%{opacity:1;transform:translate(calc(-50% + var(--dx,0px)),-90%) scale(1.06)}
+    100%{opacity:0;transform:translate(calc(-50% + var(--dx,0px)),-320%) scale(.94)}
+  }
+  .spark{position:absolute;border-radius:50%;background:var(--gold-hi);pointer-events:none}
+
+  /* ===== Магазин ===== */
+  .shop{
+    flex-shrink:0;border-top:1px solid var(--line-soft);
+    background:var(--panel);
+    max-height:46dvh;display:flex;flex-direction:column;
+    padding-bottom:calc(env(safe-area-inset-bottom) + 8px);
+    transition:max-height .35s ease;
+  }
+  .shop-head{
+    flex-shrink:0;width:100%;min-height:46px;
+    display:flex;align-items:center;gap:8px;
+    background:none;border:none;color:inherit;cursor:pointer;
+    padding:10px 18px;font-family:var(--mono);
+  }
+  .shop-head .tt{
+    font:700 10.5px var(--disp);letter-spacing:.24em;text-transform:uppercase;
+    color:var(--gold-dim);
+  }
+  .shop-head .hint{margin-left:auto;font-size:10.5px;color:#57493a;letter-spacing:.08em}
+  .shop-head svg{width:16px;height:16px;color:#57493a;transition:transform .3s}
+  .shop.collapsed .shop-head svg{transform:rotate(180deg)}
+  .shop-body{
+    overflow-y:auto;overscroll-behavior:contain;
+    padding:2px 14px 6px;
+    transition:max-height .35s ease,opacity .25s,padding .35s;
+    max-height:40dvh;
+  }
+  .shop.collapsed .shop-body{max-height:0;opacity:0;overflow:hidden;padding-top:0;padding-bottom:0}
+  .shop.collapsed .sfoot{display:none}
+  .shop-body::-webkit-scrollbar{width:4px}
+  .shop-body::-webkit-scrollbar-thumb{background:#2c2317;border-radius:4px}
+
+  .item{
+    width:100%;display:flex;align-items:center;gap:13px;text-align:left;
+    background:var(--row);border:1px solid var(--line);
+    border-radius:14px;padding:11px 13px;margin-bottom:8px;
+    cursor:pointer;color:inherit;font-family:var(--mono);
+    transition:border-color .2s,background .2s,opacity .2s;
+    min-height:68px;
+  }
+  .item .icobox{
+    flex-shrink:0;width:46px;height:46px;border-radius:12px;
+    background:#221a0e;border:1px solid #312615;
+    display:grid;place-items:center;color:#d9ae5e;
+  }
+  .item .icobox svg{width:24px;height:24px}
+  .item .mid{flex:1;min-width:0}
+  .item .nm{display:flex;align-items:center;gap:7px;font:700 13px var(--disp);letter-spacing:.01em}
+  .item .cnt{
+    font:600 10.5px var(--mono);color:#dcb173;
+    background:#241c10;border:1px solid #352a17;
+    padding:1px 7px;border-radius:20px;
+  }
+  .item .cnt.zero{opacity:.4}
+  .item .eff{margin-top:3px;font-size:11.5px;color:var(--muted)}
+  .item .now{font-size:10.5px;color:#8a7452;height:14px;margin-top:1px;visibility:hidden}
+  .item .now.on{visibility:visible}
+  .item .pr{flex-shrink:0;text-align:right}
+  .item .pv{display:inline-flex;align-items:center;gap:5px;font:800 15px var(--mono);color:#6d6355}
+  .item .pv svg{width:13px;height:13px;opacity:.7}
+  .item .cap{font-size:9.5px;color:#57493a;letter-spacing:.12em;text-transform:uppercase;margin-top:2px}
+  .item:not([disabled]){border-color:rgba(255,195,90,.32);background:#1d150a}
+  .item:not([disabled]) .pv{color:var(--gold-hi)}
+  .item:not([disabled]):active{transform:scale(.985)}
+  .item[disabled]{opacity:.55;cursor:default}
+  .item.flash{animation:boughtFlash .55s ease-out}
+  @keyframes boughtFlash{0%{background:rgba(255,196,80,.3);border-color:var(--gold)}100%{}}
+
+  /* ===== Подвал магазина ===== */
+  .sfoot{
+    flex-shrink:0;border-top:1px solid var(--line-soft);
+    margin:4px 18px 0;padding:9px 0 2px;
+  }
+  .mstats{
+    display:flex;justify-content:space-between;
+    font-size:10.5px;color:#6d5f4c;font-variant-numeric:tabular-nums;
+  }
+  .mstats b{display:block;font:600 12px var(--mono);color:#d9c39c;margin-top:2px}
+  .reset-row{text-align:center;margin-top:10px}
+  #resetBtn{
+    background:none;border:none;cursor:pointer;
+    font:500 10.5px var(--mono);letter-spacing:.1em;text-transform:uppercase;
+    color:#6f6250;border-bottom:1px dotted #57493a;padding:4px 2px;
+  }
+  #resetBtn.arm{color:var(--bad);border-color:var(--bad)}
+
+  /* ===== Тосты ===== */
+  #toasts{
+    position:fixed;top:calc(env(safe-area-inset-top) + 14px);left:50%;
+    transform:translateX(-50%);z-index:99;
+    display:flex;flex-direction:column;gap:8px;align-items:center;
+    width:max-content;max-width:88vw;pointer-events:none;
+  }
+  .toast{
+    background:#231b10;border:1px solid rgba(255,195,90,.28);
+    color:var(--text);font-size:12px;padding:10px 18px;border-radius:24px;
+    box-shadow:0 10px 30px rgba(0,0,0,.55);
+    animation:tIn .3s ease-out,tOut .3s ease-in 3.2s forwards;
+    max-width:88vw;text-align:center;
+  }
+  @keyframes tIn{from{opacity:0;transform:translateY(-10px)}}
+  @keyframes tOut{to{opacity:0;transform:translateY(-8px)}}
+
+  @media(min-width:700px){:root{--coin:270px}}
+</style>
+</head>
+<body>
+
+<!-- SVG-символы: набор иконок -->
+<svg style="display:none" xmlns="http://www.w3.org/2000/svg">
+  <symbol id="i-coin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="8.6"/>
+    <path d="M9.7 7.7h3.2a2 2 0 1 1 0 4H9.7zm0 4h3.7a2.05 2.05 0 1 1 0 4.1H9.7zM9.7 7.7v8.1"/>
+    <path d="M11.2 5.9v1.6M13.4 5.9v1.6M11.2 16.6v1.6M13.4 16.6v1.6"/>
+  </symbol>
+  <symbol id="i-cursor" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M6 3.6 18.8 11l-5.7 1.3L10 19.2Z"/><path d="M13.6 13.4l4.4 4.6"/>
+  </symbol>
+  <symbol id="i-gpu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="3" y="5.5" width="18" height="10.5" rx="2"/>
+    <circle cx="9.2" cy="10.7" r="3.1"/><path d="M9.2 7.6v6.2M6.6 9.2l5.2 3M11.8 9.2l-5.2 3"/>
+    <path d="M15.6 9h2.8M15.6 12.4h2.8M7 16v2.4M10.4 16v2.4M13.8 16v2.4"/>
+  </symbol>
+  <symbol id="i-farm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="6" y="3.8" width="12" height="4.5" rx="1"/>
+    <rect x="6" y="9.75" width="12" height="4.5" rx="1"/>
+    <rect x="6" y="15.7" width="12" height="4.5" rx="1"/>
+    <path d="M8.6 6.05h3.6M8.6 12h3.6M8.6 17.95h3.6"/>
+    <circle cx="15.6" cy="6.05" r=".55" fill="currentColor" stroke="none"/>
+    <circle cx="15.6" cy="12" r=".55" fill="currentColor" stroke="none"/>
+    <circle cx="15.6" cy="17.95" r=".55" fill="currentColor" stroke="none"/>
+  </symbol>
+  <symbol id="i-asic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="7.2" y="7.2" width="9.6" height="9.6" rx="1.6"/>
+    <path d="M9.6 7.2V4.4M12 7.2V4.4M14.4 7.2V4.4M9.6 19.6v-2.8M12 19.6v-2.8M14.4 19.6v-2.8M7.2 9.6H4.4M7.2 12H4.4M7.2 14.4H4.4M19.6 9.6h-2.8M19.6 12h-2.8M19.6 14.4h-2.8"/>
+    <path d="M12.7 9.4l-2.4 3.1h1.8l-.5 2.6 2.6-3.3h-1.9z" fill="currentColor" stroke-width="1"/>
+  </symbol>
+  <symbol id="i-bolt" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M13 3.5 6.2 13.2h4.6L9.6 20.5l7.2-10h-4.8z"/>
+  </symbol>
+  <symbol id="i-pulse" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M3 12h3.5l2-5 3.4 10 2.4-6.5 1.4 3H21"/>
+  </symbol>
+  <symbol id="i-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M7 14.5l5-5 5 5"/>
+  </symbol>
+</svg>
+
+<div id="app">
+  <header>
+    <svg class="brand-ic"><use href="#i-coin"/></svg>
+    <h1>Золотая лихорадка</h1>
+    <span class="ver">IDLE&nbsp;v1.1</span>
+  </header>
+
+  <section class="stats">
+    <div class="bal">
+      <svg class="glyph" style="color:var(--gold)"><use href="#i-coin"/></svg>
+      <span id="balance">0</span>
+    </div>
+    <div class="sub">
+      <span><svg style="color:#8f7b5e"><use href="#i-bolt"/></svg> клик <b id="pwLbl">1</b></span>
+      <span class="dot">·</span>
+      <span><svg style="color:#8f7b5e"><use href="#i-pulse"/></svg> <b id="cpsLbl">0</b> в секунду</span>
+    </div>
+  </section>
+
+  <main class="pf" id="pf">
+    <span class="rings r1"></span>
+    <span class="rings r2"></span>
+    <div class="halo"></div>
+    <div id="orbits"></div>
+    <button class="coin" id="coin" aria-label="Добывать монеты">
+      <span class="stack">
+        <span class="ring"></span>
+        <span class="disc">
+          <span class="edge"></span>
+          <span class="face">
+            <span class="sheen"></span>
+            <span class="mark">B</span>
+          </span>
+        </span>
+      </span>
+    </button>
+    <div id="fx"></div>
+  </main>
+
+  <section class="shop" id="shop">
+    <button class="shop-head" id="shopToggle" aria-label="Свернуть или развернуть магазин">
+      <span class="tt">Магазин улучшений</span>
+      <span class="hint">цены растут на 15%</span>
+      <svg><use href="#i-chev"/></svg>
+    </button>
+    <div class="shop-body"><div id="shopList"></div></div>
+    <footer class="sfoot">
+      <div class="mstats">
+        <span>Добыто всего<b id="stTotal">0</b></span>
+        <span>Кликов<b id="stClicks">0</b></span>
+        <span>В игре<b id="stTime">0 мин</b></span>
+      </div>
+      <div class="reset-row"><button id="resetBtn">Сбросить прогресс</button></div>
+    </footer>
+  </section>
+</div>
+
+<div id="toasts" role="status" aria-live="polite"></div>
+
+<script>
+'use strict';
+
+/* ==================== Конфигурация товаров ==================== */
+const ITEMS = [
+  { id:'cursor', name:'Курсор',        desc:'+1 к силе клика',      baseCost:15,    click:1 },
+  { id:'gpu',    name:'Видеокарта',    desc:'+1 монета в секунду',  baseCost:100,   cps:1 },
+  { id:'farm',   name:'Майнинг-ферма', desc:'+8 монет в секунду',   baseCost:1100,  cps:8 },
+  { id:'asic',   name:'Квантовый Асик',desc:'+47 монет в секунду',  baseCost:12000, cps:47 },
+];
+const GROWTH = 0.15;          // рост цены за каждый купленный экземпляр
+const SAVE_KEY = 'goldrush_save_v1';
+const OFFLINE_CAP_MS = 8 * 3600 * 1000; // оффлайн-доход максимум за 8 часов
+
+/* ==================== Конфигурация орбит ====================
+   Каждый тип улучшений летает вокруг монеты на своей орбите:
+   off  — отступ от края монеты,
+   dur  — время одного оборота,
+   dir  — направление вращения,
+   sz   — размер иконки в px.                                   */
+const ORB_CAP = 12; // максимум видимых иконок одного типа (для производительности)
+const ORBITS = {
+  cursor:{ off:16, dur:'13s', dir:'reverse', sz:20 },
+  gpu:   { off:40, dur:'19s', dir:'normal',  sz:23 },
+  farm:  { off:63, dur:'27s', dir:'reverse', sz:23 },
+  asic:  { off:87, dur:'37s', dir:'normal',  sz:27 },
+};
+const ORB_ICON = { cursor:'#i-cursor', gpu:'#i-gpu', farm:'#i-farm', asic:'#i-asic' };
+
+/* ==================== Состояние игры ==================== */
+let S = {
+  coins: 0,
+  total: 0,
+  clicks: 0,
+  started: Date.now(),
+  owned: { cursor:0, gpu:0, farm:0, asic:0 },
+};
+
+/* ==================== Форматирование чисел ==================== */
+const SUF = [[1e18,'E'],[1e15,'Q'],[1e12,'T'],[1e9,'B'],[1e6,'M'],[1e3,'K']];
+function fmt(n){
+  n = Math.floor(n);
+  if (n < 1000) return String(n);
+  for (const [v,s] of SUF){
+    if (n >= v){
+      const m = n / v;
+      const d = m >= 100 ? 0 : m >= 10 ? 1 : 2;
+      return m.toFixed(d).replace('.', ',') + s;
+    }
+  }
+  return String(n);
+}
+function fmtCps(n){
+  if (n < 1000) return (Math.round(n * 10) / 10).toLocaleString('ru-RU');
+  return fmt(n);
+}
+
+/* ==================== Производные величины ==================== */
+const costOf   = it => Math.floor(it.baseCost * Math.pow(1 + GROWTH, S.owned[it.id]));
+const clickPow = () => 1 + S.owned.cursor * (ITEMS.find(i => i.id === 'cursor').click || 1);
+const totalCps = () => ITEMS.reduce((sum, it) => sum + (it.cps || 0) * S.owned[it.id], 0);
+
+/* ==================== Построение магазина ==================== */
+const ICONS = ORB_ICON;
+const shopList = document.getElementById('shopList');
+const refs = {};
+
+ITEMS.forEach(it => {
+  const btn = document.createElement('button');
+  btn.className = 'item';
+  btn.innerHTML = `
+    <span class="icobox"><svg><use href="${ICONS[it.id]}"/></svg></span>
+    <span class="mid">
+      <span class="nm">${it.name} <b class="cnt zero">×0</b></span>
+      <span class="eff">${it.desc}</span>
+      <span class="now"></span>
+    </span>
+    <span class="pr">
+      <span class="pv"><svg style="color:currentColor"><use href="#i-coin"/></svg><span class="pc"></span></span>
+      <span class="cap">цена</span>
+    </span>`;
+  btn.setAttribute('aria-label', '');
+  btn.addEventListener('pointerdown', e => { e.preventDefault(); buy(it.id); });
+  shopList.appendChild(btn);
+  refs[it.id] = {
+    btn, pc: btn.querySelector('.pc'), cnt: btn.querySelector('.cnt'),
+    now: btn.querySelector('.now'),
+    orbit: null, shown: 0
+  };
+});
+
+/* ==================== Отрисовка магазина ==================== */
+function refreshShop(){
+  ITEMS.forEach(it => {
+    const r = refs[it.id], cost = costOf(it), owned = S.owned[it.id];
+    r.pc.textContent = fmt(cost);
+    r.cnt.textContent = '×' + fmt(owned);
+    r.cnt.classList.toggle('zero', owned === 0);
+
+    if (it.click){
+      r.now.textContent = `Сейчас: +${fmt(clickPow())} за клик`;
+      r.now.classList.toggle('on', owned > 0);
+    } else {
+      r.now.textContent = `Сейчас: +${fmtCps(S.owned[it.id]*it.cps)} в сек`;
+      r.now.classList.toggle('on', owned > 0);
+    }
+
+    const can = S.coins >= cost;
+    if (can) r.btn.removeAttribute('disabled'); else r.btn.setAttribute('disabled','');
+    r.btn.setAttribute('aria-label', `Купить «${it.name}» за ${fmt(cost)} монет`);
+  });
+}
+
+/* ==================== Покупка ==================== */
+function buy(id){
+  const it = ITEMS.find(i => i.id === id);
+  const cost = costOf(it);
+  if (S.coins < cost) return;
+  S.coins -= cost;
+  S.owned[id]++;
+  const r = refs[id];
+  r.btn.classList.remove('flash'); void r.btn.offsetWidth; r.btn.classList.add('flash');
+  addOrbiter(id, true);       // новая иконка взлетает на орбиту
+  refreshShop(); updateHUD(true); save();
+}
+
+/* ==================== Система орбит ==================== */
+const orbitsBox = document.getElementById('orbits');
+
+function ensureOrbitRing(id){
+  const r = refs[id];
+  if (r.orbit && r.orbit.isConnected) return r.orbit;
+  const cfg = ORBITS[id];
+  const el = document.createElement('div');
+  el.className = 'orbit';
+  el.style.setProperty('--r', `calc(var(--coin) / 2 + ${cfg.off}px)`);
+  el.style.setProperty('--d', cfg.dur);
+  el.style.setProperty('--dir', cfg.dir);
+  const spin = document.createElement('div');
+  spin.className = 'orb-spin o-' + id;
+  el.appendChild(spin);
+  orbitsBox.appendChild(el);
+  r.orbit = spin;
+  r.shown = 0;
+  return spin;
+}
+
+function addOrbiter(id, animate){
+  const r = refs[id];
+  if (!S.owned[id]) return;
+  if (r.shown >= ORB_CAP) return; // визуальный лимит: если построек много, рисуем не все
+  const spin = ensureOrbitRing(id);
+  const cfg = ORBITS[id];
+  const idx = r.shown;
+
+  const sp = document.createElement('span');
+  sp.className = 'orb-sprite';
+  sp.style.setProperty('--a',  (idx * 360 / ORB_CAP).toFixed(1) + 'deg');
+  sp.style.setProperty('--jit',(Math.random() * 10 - 5).toFixed(1) + 'px');
+
+  const ccw = document.createElement('span');
+  ccw.className = 'ccw';
+
+  const bob = document.createElement('span');
+  bob.className = animate ? 'pop' : 'bob';
+  bob.style.setProperty('--sz',   cfg.sz + 'px');
+  bob.style.setProperty('--bd',   (2.6 + Math.random() * 1.6).toFixed(2) + 's');
+  bob.style.setProperty('--bdel', '-' + (Math.random() * 4).toFixed(2) + 's');
+
+  bob.insertAdjacentHTML('beforeend',
+    `<svg style="width:${cfg.sz}px;height:${cfg.sz}px"><use href="${ORB_ICON[id]}"/></svg>`);
+
+  ccw.appendChild(bob);
+  sp.appendChild(ccw);
+  spin.appendChild(sp);
+  r.shown++;
+}
+
+function rebuildOrbits(){
+  ITEMS.forEach(it => {
+    const r = refs[it.id];
+    if (r.orbit){ r.orbit.parentElement.remove(); r.orbit = null; }
+    r.shown = 0;
+    for (let i = 0; i < Math.min(S.owned[it.id], ORB_CAP); i++) addOrbiter(it.id, false);
+  });
+}
+
+/* ==================== HUD и счётчик ==================== */
+const balEl = document.getElementById('balance');
+let shownBal = -1;
+
+function updateHUD(force){
+  const v = Math.floor(S.coins);
+  if (force || v !== shownBal){
+    shownBal = v;
+    balEl.textContent = fmt(v);
+  }
+  document.getElementById('cpsLbl').textContent = fmtCps(totalCps());
+  document.getElementById('pwLbl').textContent = fmt(clickPow());
+}
+
+function updateSlowStats(){
+  document.getElementById('stTotal').textContent  = fmt(S.total);
+  document.getElementById('stClicks').textContent = fmt(S.clicks);
+  const mins = Math.max(0, Math.floor((Date.now() - S.started) / 60000));
+  document.getElementById('stTime').textContent =
+    mins >= 1440 ? (mins/1440).toFixed(1).replace('.',',') + ' дн' :
+    mins >= 60   ? Math.floor(mins/60) + ' ч ' + (mins%60) + ' мин' :
+                   mins + ' мин';
+}
+
+/* ==================== Клики по монете + эффекты ==================== */
+const coinEl = document.getElementById('coin');
+const pf = document.getElementById('pf');
+const fx = document.getElementById('fx');
+
+function spawnFloat(x, y, text, minor){
+  if (fx.childElementCount > 18) fx.firstElementChild.remove();
+  const el = document.createElement('span');
+  el.className = 'float' + (minor ? ' minor' : '');
+  el.textContent = text;
+  el.style.left = x + 'px';
+  el.style.top  = y + 'px';
+  el.style.setProperty('--dx', (Math.random()*56 - 28).toFixed(0) + 'px');
+  el.addEventListener('animationend', () => el.remove());
+  fx.appendChild(el);
+}
+
+function sparks(x, y){
+  for (let i = 0; i < 7; i++){
+    const s = document.createElement('span');
+    s.className = 'spark';
+    const sz = 2 + Math.random()*3.5;
+    s.style.cssText = `left:${x}px;top:${y}px;width:${sz}px;height:${sz}px`;
+    fx.appendChild(s);
+    const ang = Math.random() * Math.PI * 2, dist = 46 + Math.random()*70;
+    s.animate([
+      { transform:'translate(-50%,-50%) scale(1)', opacity:1 },
+      { transform:`translate(${Math.cos(ang)*dist - 4}px,${Math.sin(ang)*dist - 44}px) scale(.2)`, opacity:0 }
+    ], { duration: 520 + Math.random()*380, easing:'cubic-bezier(.15,.6,.3,1)' })
+      .onfinish = () => s.remove();
+  }
+  const ring = document.createElement('span');
+  ring.className = 'spark';
+  ring.style.cssText = `left:${x}px;top:${y}px;width:22px;height:22px;background:none;border:2px solid rgba(255,214,106,.55)`;
+  fx.appendChild(ring);
+  ring.animate([
+    { transform:'translate(-50%,-50%) scale(.4)', opacity:.9 },
+    { transform:'translate(-50%,-50%) scale(3.4)', opacity:0 }
+  ], { duration:480, easing:'ease-out' }).onfinish = () => ring.remove();
+}
+
+function mine(x, y){
+  const p = clickPow();
+  S.coins += p; S.total += p; S.clicks++;
+  updateHUD();
+  spawnFloat(x, y, '+' + fmt(p), false);
+  sparks(x, y);
+  try { navigator.vibrate && navigator.vibrate(8); } catch(e){}
+}
+
+coinEl.addEventListener('pointerdown', e => {
+  e.preventDefault();
+  coinEl.classList.add('pressed');
+  const rc = pf.getBoundingClientRect();
+  mine(e.clientX - rc.left, e.clientY - rc.top - 14);
+});
+coinEl.addEventListener('contextmenu', e => e.preventDefault());
+const release = () => coinEl.classList.remove('pressed');
+window.addEventListener('pointerup', release);
+window.addEventListener('pointercancel', release);
+coinEl.addEventListener('click', e => { // поддержка клавиатуры (Enter)
+  if (e.detail !== 0) return;
+  const rc = pf.getBoundingClientRect();
+  mine(rc.width/2, rc.height/2 - 30);
+});
+
+/* Пассивный доход: «дыхание» цифр около монеты */
+setInterval(() => {
+  const cps = totalCps();
+  if (cps <= 0 || document.hidden) return;
+  const rc = pf.getBoundingClientRect();
+  const cx = rc.width/2, cy = rc.height/2;
+  const a  = -Math.PI/2 + (Math.random()*1.6 - 0.8);
+  spawnFloat(cx + Math.cos(a)*rc.width*0.22, cy + Math.sin(a)*rc.height*0.3,
+             '+' + fmtCps(cps), true);
+}, 2200);
+
+/* ==================== Тактовый цикл (точное время) ==================== */
+let lastTick = Date.now();
+setInterval(() => {
+  const now = Date.now();
+  const dt = (now - lastTick) / 1000;
+  lastTick = now;
+  const cps = totalCps();
+  if (cps > 0 && dt > 0){
+    const gain = cps * dt;
+    S.coins += gain; S.total += gain;
+  }
+}, 250);
+
+/* Плавная перерисовка счётчика */
+(function paint(){
+  updateHUD(false);
+  requestAnimationFrame(paint)();
+})();
+
+setInterval(refreshShop, 300);        // доступность покупок
+setInterval(updateSlowStats, 5000);   // «медленная» статистика
+
+/* ==================== Сохранение / загрузка ==================== */
+function save(){
+  try {
+    localStorage.setItem(SAVE_KEY, JSON.stringify({
+      v:1, coins:S.coins, total:S.total, clicks:S.clicks,
+      started:S.started, owned:S.owned, ts:Date.now()
+    }));
+  } catch(e){}
+}
+setInterval(save, 10000);
+document.addEventListener('visibilitychange', () => { if (document.hidden) save(); });
+window.addEventListener('pagehide', save);
+window.addEventListener('beforeunload', save);
+
+function load(){
+  let data = null;
+  try { data = JSON.parse(localStorage.getItem(SAVE_KEY)); } catch(e){}
+  if (!data) return;
+
+  S.coins   = +data.coins   || 0;
+  S.total   = +data.total   || 0;
+  S.clicks  = +data.clicks  || 0;
+  S.started = +data.started || Date.now();
+  Object.keys(S.owned).forEach(k => {
+    S.owned[k] = Math.max(0, Math.floor(+data.owned?.[k] || 0));
+  });
+
+  // Оффлайн-доход: пока браузер был закрыт
+  const away = Date.now() - (+data.ts || Date.now());
+  const cps = totalCps();
+  if (away > 60000 && cps > 0){
+    const gain = Math.floor(cps * Math.min(away, OFFLINE_CAP_MS) / 1000);
+    if (gain > 0){
+      S.coins += gain; S.total += gain;
+      toast(`Пока вас не было, майнеры добыли +${fmt(gain)} монет`);
+    }
+  }
+}
+
+/* ==================== Сброс прогресса (двухшаговый) ==================== */
+const resetBtn = document.getElementById('resetBtn');
+let armTimer = null;
+resetBtn.addEventListener('click', () => {
+  if (!resetBtn.classList.contains('arm')){
+    resetBtn.classList.add('arm');
+    resetBtn.textContent = 'Точно удалить всё?';
+    armTimer = setTimeout(disarm, 4000);
+  } else {
+    clearTimeout(armTimer); disarm();
+    try { localStorage.removeItem(SAVE_KEY); } catch(e){}
+    S = { coins:0, total:0, clicks:0, started:Date.now(),
+          owned:{ cursor:0, gpu:0, farm:0, asic:0 } };
+    rebuildOrbits();
+    lastTick = Date.now(); shownBal = -1;
+    updateHUD(true); refreshShop(); updateSlowStats();
+    toast('Прогресс полностью сброшен');
+  }
+});
+function disarm(){
+  resetBtn.classList.remove('arm');
+  resetBtn.textContent = 'Сбросить прогресс';
+}
+
+/* ==================== Сворачивание магазина ==================== */
+document.getElementById('shopToggle').addEventListener('click', () => {
+  document.getElementById('shop').classList.toggle('collapsed');
+});
+
+/* ==================== Тосты ==================== */
+function toast(msg){
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.textContent = msg;
+  document.getElementById('toasts').appendChild(t);
+  setTimeout(() => t.remove(), 3700);
+}
+
+/* ==================== Старт ==================== */
+load();
+rebuildOrbits();
+refreshShop();
+updateHUD(true);
+updateSlowStats();
+</script>
+</body>
+</html>
