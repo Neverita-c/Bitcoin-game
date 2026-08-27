@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#0e0b08">
 <title>Золотая лихорадка — крипто-кликер</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;900&family=JetBrains+Mono:wght@400;600;800&display=swap" rel="stylesheet">
@@ -24,7 +25,7 @@
     --gold-dim:#cfa64f;
     --deep:#8a5510;
     --bad:#e2604f;
-    --coin:min(clamp(172px,55vw,290px), calc(100dvh - 420px));
+    --coin:min(clamp(172px,55vw,290px), calc(100dvh - 480px));
     --mono:'JetBrains Mono',ui-monospace,monospace;
     --disp:'Unbounded',sans-serif;
   }
@@ -67,26 +68,56 @@
     margin-left:auto;font-size:10px;color:#584c3b;letter-spacing:.1em;
   }
 
-  /* ===== Баланс ===== */
-  .stats{padding:14px 16px 4px;text-align:center;flex-shrink:0}
+  /* ===== Баланс + донат ===== */
+  .stats{padding:13px 16px 6px;text-align:center;flex-shrink:0}
   .bal{
     display:flex;align-items:center;justify-content:center;gap:10px;
-    font:800 clamp(32px,9vw,44px)/1 var(--mono);
+    font:800 clamp(32px,9vw,42px)/1 var(--mono);
     letter-spacing:-.02em;
     font-variant-numeric:tabular-nums;
   }
   .bal .glyph{width:.62em;height:.62em;transform:translateY(2px)}
   .sub{
-    margin-top:9px;display:flex;justify-content:center;gap:7px;align-items:center;
+    margin-top:8px;display:flex;justify-content:center;gap:7px;align-items:center;
     font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;
   }
   .sub b{color:var(--gold);font-weight:600}
   .sub svg{width:13px;height:13px;position:relative;top:2px}
   .dot{color:#43372a;margin:0 3px}
 
+  /* ===== Неоновая кнопка доната ===== */
+  .neon-donate{
+    margin-top:12px;
+    display:inline-flex;align-items:center;justify-content:center;gap:9px;
+    width:min(100%,430px);min-height:54px;
+    border-radius:16px;
+    background:#170f05;
+    border:1px solid rgba(255,199,84,.6);
+    color:var(--gold-hi);
+    font:800 clamp(11.5px,3.5vw,13.5px)/1.25 var(--mono);
+    letter-spacing:.02em;
+    cursor:pointer;
+    text-shadow:0 0 12px rgba(255,192,60,.5);
+    box-shadow:
+      0 0 12px rgba(240,177,58,.26),
+      0 0 32px rgba(240,177,58,.14),
+      inset 0 0 18px rgba(240,177,58,.13);
+    transition:transform .15s ease;
+    animation:neonPulse 2.8s ease-in-out infinite alternate;
+  }
+  @keyframes neonPulse{
+    from{box-shadow:0 0 9px rgba(240,177,58,.2),0 0 24px rgba(240,177,58,.1),inset 0 0 14px rgba(240,177,58,.09)}
+    to{box-shadow:0 0 18px rgba(240,177,58,.4),0 0 48px rgba(240,177,58,.2),inset 0 0 26px rgba(240,177,58,.19)}
+  }
+  .neon-donate svg{width:17px;height:17px;flex-shrink:0;color:var(--gold);
+    filter:drop-shadow(0 0 7px rgba(255,200,90,.85))}
+  .neon-donate:active{transform:scale(.97)}
+  .neon-donate.sending{animation:none;border-color:rgba(255,220,140,.9);opacity:.75}
+  .neon-donate:focus-visible{outline:2px solid var(--gold-hi);outline-offset:3px}
+
   /* ===== Игровое поле ===== */
   .pf{
-    position:relative;flex:1;min-height:200px;
+    position:relative;flex:1;min-height:170px;
     display:grid;place-items:center;
     overflow:hidden;
   }
@@ -212,7 +243,7 @@
   .shop{
     flex-shrink:0;border-top:1px solid var(--line-soft);
     background:var(--panel);
-    max-height:46dvh;display:flex;flex-direction:column;
+    max-height:44dvh;display:flex;flex-direction:column;
     padding-bottom:calc(env(safe-area-inset-bottom) + 8px);
     transition:max-height .35s ease;
   }
@@ -233,7 +264,7 @@
     overflow-y:auto;overscroll-behavior:contain;
     padding:2px 14px 6px;
     transition:max-height .35s ease,opacity .25s,padding .35s;
-    max-height:40dvh;
+    max-height:38dvh;
   }
   .shop.collapsed .shop-body{max-height:0;opacity:0;overflow:hidden;padding-top:0;padding-bottom:0}
   .shop.collapsed .sfoot{display:none}
@@ -311,7 +342,7 @@
   @keyframes tIn{from{opacity:0;transform:translateY(-10px)}}
   @keyframes tOut{to{opacity:0;transform:translateY(-8px)}}
 
-  @media(min-width:700px){:root{--coin:270px}}
+  @media(min-width:700px){:root{--coin:250px}}
 </style>
 </head>
 <body>
@@ -354,13 +385,17 @@
   <symbol id="i-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
     <path d="M7 14.5l5-5 5 5"/>
   </symbol>
+  <symbol id="i-cart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="9" cy="20" r="1.4"/><circle cx="17" cy="20" r="1.4"/>
+    <path d="M3 3.5h2.4l2.3 12h10.6l2.2-8.5H6.1"/>
+  </symbol>
 </svg>
 
 <div id="app">
   <header>
     <svg class="brand-ic"><use href="#i-coin"/></svg>
     <h1>Золотая лихорадка</h1>
-    <span class="ver">IDLE&nbsp;v1.1</span>
+    <span class="ver">IDLE&nbsp;v1.2</span>
   </header>
 
   <section class="stats">
@@ -373,6 +408,12 @@
       <span class="dot">·</span>
       <span><svg style="color:#8f7b5e"><use href="#i-pulse"/></svg> <b id="cpsLbl">0</b> в секунду</span>
     </div>
+
+    <!-- Неоновая кнопка доната -->
+    <button class="neon-donate" id="donateBtn" aria-label="Купить 1 000 000 Биткоинов за 49 рублей">
+      <svg><use href="#i-bolt"/></svg>
+      <span>Купить&nbsp;1&nbsp;000&nbsp;000&nbsp;Биткоинов&nbsp;за&nbsp;49₽</span>
+    </button>
   </section>
 
   <main class="pf" id="pf">
@@ -418,6 +459,16 @@
 <script>
 'use strict';
 
+/* ==================== Telegram WebApp ==================== */
+const tgApi = (window.Telegram && window.Telegram.WebApp)
+  ? window.Telegram.WebApp : null;
+try {
+  if (tgApi){
+    tgApi.ready();
+    tgApi.expand();
+  }
+} catch(e){ /* открыто вне Telegram */ }
+
 /* ==================== Конфигурация товаров ==================== */
 const ITEMS = [
   { id:'cursor', name:'Курсор',        desc:'+1 к силе клика',      baseCost:15,    click:1 },
@@ -425,17 +476,12 @@ const ITEMS = [
   { id:'farm',   name:'Майнинг-ферма', desc:'+8 монет в секунду',   baseCost:1100,  cps:8 },
   { id:'asic',   name:'Квантовый Асик',desc:'+47 монет в секунду',  baseCost:12000, cps:47 },
 ];
-const GROWTH = 0.15;          // рост цены за каждый купленный экземпляр
+const GROWTH = 0.15;
 const SAVE_KEY = 'goldrush_save_v1';
-const OFFLINE_CAP_MS = 8 * 3600 * 1000; // оффлайн-доход максимум за 8 часов
+const OFFLINE_CAP_MS = 8 * 3600 * 1000;
 
-/* ==================== Конфигурация орбит ====================
-   Каждый тип улучшений летает вокруг монеты на своей орбите:
-   off  — отступ от края монеты,
-   dur  — время одного оборота,
-   dir  — направление вращения,
-   sz   — размер иконки в px.                                   */
-const ORB_CAP = 12; // максимум видимых иконок одного типа (для производительности)
+/* ==================== Конфигурация орбит ==================== */
+const ORB_CAP = 12;
 const ORBITS = {
   cursor:{ off:16, dur:'13s', dir:'reverse', sz:20 },
   gpu:   { off:40, dur:'19s', dir:'normal',  sz:23 },
@@ -537,7 +583,7 @@ function buy(id){
   S.owned[id]++;
   const r = refs[id];
   r.btn.classList.remove('flash'); void r.btn.offsetWidth; r.btn.classList.add('flash');
-  addOrbiter(id, true);       // новая иконка взлетает на орбиту
+  addOrbiter(id, true);
   refreshShop(); updateHUD(true); save();
 }
 
@@ -565,7 +611,7 @@ function ensureOrbitRing(id){
 function addOrbiter(id, animate){
   const r = refs[id];
   if (!S.owned[id]) return;
-  if (r.shown >= ORB_CAP) return; // визуальный лимит: если построек много, рисуем не все
+  if (r.shown >= ORB_CAP) return;
   const spin = ensureOrbitRing(id);
   const cfg = ORBITS[id];
   const idx = r.shown;
@@ -686,13 +732,67 @@ coinEl.addEventListener('contextmenu', e => e.preventDefault());
 const release = () => coinEl.classList.remove('pressed');
 window.addEventListener('pointerup', release);
 window.addEventListener('pointercancel', release);
-coinEl.addEventListener('click', e => { // поддержка клавиатуры (Enter)
+coinEl.addEventListener('click', e => {
   if (e.detail !== 0) return;
   const rc = pf.getBoundingClientRect();
   mine(rc.width/2, rc.height/2 - 30);
 });
 
-/* Пассивный доход: «дыхание» цифр около монеты */
+/* ==================== Кнопка доната ====================
+   По правилам платформы Telegram метод sendData() доставляет строку боту
+   и ЗАКРЫВАЕТ мини-апп. Поэтому:
+   1) перед отправкой принудительно сохраняем прогресс;
+   2) трясём вибрацию, если доступна;
+   3) если sendData недоступен (открыли не из меню бота или вне Telegram) —
+      через таймаут понимаем, что приложение НЕ закрылось, и подсказываем. */
+const donateBtn = document.getElementById('donateBtn');
+const DONATE_SIGNAL = 'donate_1m';   // ← ровно эту строку ждёт Python-бот
+let donateGuard = false;
+
+function requestDonate(){
+  if (donateGuard) return;
+  donateGuard = true;
+  donateBtn.classList.add('sending');
+
+  save(); // фиксируем баланс до возможного закрытия окна
+
+  let closedByTelegram = false;
+  try {
+    if (tgApi && typeof tgApi.HapticFeedback !== 'undefined'){
+      tgApi.HapticFeedback.impactOccurred('medium');
+    }
+  } catch(e){}
+
+  try {
+    if (tgApi && typeof tgApi.sendData === 'function'){
+      tgApi.sendData(DONATE_SIGNAL);
+      // Если всё прошло штатно, Telegram свернёт приложение прямо сейчас.
+      closedByTelegram = true;
+      // Страховка: приложение может остаться открытым (запуск не из кнопки меню).
+      setTimeout(() => {
+        if (!closedByTelegram || document.visibilityState === 'visible'){
+          donateReset(
+            'Запрос ушёл боту ✓\nЕсли счёт не пришёл — откройте бота и нажмите «Купить донат»'
+          );
+        }
+      }, 1500);
+    } else {
+      donateReset('Покупка работает только внутри Telegram.\nОткройте игру из чата с ботом 🤖');
+    }
+  } catch(err){
+    console.error('sendData:', err);
+    donateReset('Не получилось связаться с ботом. Попробуйте ещё раз.');
+  }
+}
+
+function donateReset(msg){
+  donateBtn.classList.remove('sending');
+  donateGuard = false;
+  if (msg) toast(msg);
+}
+donateBtn.addEventListener('click', requestDonate);
+
+/* ==================== Пассивный доход: плавающие цифры ==================== */
 setInterval(() => {
   const cps = totalCps();
   if (cps <= 0 || document.hidden) return;
@@ -716,14 +816,13 @@ setInterval(() => {
   }
 }, 250);
 
-/* Плавная перерисовка счётчика */
 (function paint(){
   updateHUD(false);
-  requestAnimationFrame(paint)();
+  requestAnimationFrame(paint);
 })();
 
-setInterval(refreshShop, 300);        // доступность покупок
-setInterval(updateSlowStats, 5000);   // «медленная» статистика
+setInterval(refreshShop, 300);
+setInterval(updateSlowStats, 5000);
 
 /* ==================== Сохранение / загрузка ==================== */
 function save(){
@@ -752,7 +851,6 @@ function load(){
     S.owned[k] = Math.max(0, Math.floor(+data.owned?.[k] || 0));
   });
 
-  // Оффлайн-доход: пока браузер был закрыт
   const away = Date.now() - (+data.ts || Date.now());
   const cps = totalCps();
   if (away > 60000 && cps > 0){
@@ -797,6 +895,7 @@ document.getElementById('shopToggle').addEventListener('click', () => {
 function toast(msg){
   const t = document.createElement('div');
   t.className = 'toast';
+  t.style.whiteSpace = 'pre-line';
   t.textContent = msg;
   document.getElementById('toasts').appendChild(t);
   setTimeout(() => t.remove(), 3700);
