@@ -8,7 +8,7 @@ from telebot import types
 # Включаем подробные логи
 logging.basicConfig(level=logging.INFO)
 
-BOT_TOKEN = "8669188850:AAEDTy2I8Z9jR11AKjbHI9t6TJ8YJbQTLWU"
+BOT_TOKEN = "8669188850:AAHZ77raSHQE5hnRF5S-FUsNI4_Cq47KWPo"
 PROVIDER_TOKEN = "1744374395:TEST:d120a3e7495fe4dbc7c5"
 WEBAPP_URL = "https://neverita-c.github.io/Bitcoin-game/"
 
