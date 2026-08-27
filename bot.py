@@ -30,10 +30,8 @@ from telebot.apihelper import ApiTelegramException
 
 BOT_TOKEN       = os.getenv("BOT_TOKEN", "8669188850:AAEDTy2I8Z9jR11AKjbHI9t6TJ8YJbQTLWU")  # @BotFather
 AAIO_MERCHANT   = int(os.getenv("AAIO_MERCHANT", "000000"))     # ID магазина из кабинета Aaio
-AAIO_SECRET     = os.getenv("AAIO_SECRET", " Merchant Secret")  # «Секретный ключ №1» (мерчант-ключ)
 AAIO_API_KEY    = os.getenv("AAIO_API_KEY", "api-key-here")     # API-ключ магазина (для проверки статусов)
 ADMIN_ID        = int(os.getenv("ADMIN_ID", "0"))               # ваш Telegram ID — присылает лог покупок (0 = выкл)
-
 DONATE_PRICE    = "50"          # строкой, целое число рублей
 DONATE_CURRENCY = "RUB"
 PAY_METHOD      = "sbp"         # способ оплаты: СБП
