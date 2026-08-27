@@ -112,7 +112,6 @@
   .neon-donate svg{width:17px;height:17px;flex-shrink:0;color:var(--gold);
     filter:drop-shadow(0 0 7px rgba(255,200,90,.85))}
   .neon-donate:active{transform:scale(.97)}
-  .neon-donate.sending{animation:none;border-color:rgba(255,220,140,.9);opacity:.75}
   .neon-donate:focus-visible{outline:2px solid var(--gold-hi);outline-offset:3px}
 
   /* ===== Игровое поле ===== */
@@ -385,17 +384,13 @@
   <symbol id="i-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
     <path d="M7 14.5l5-5 5 5"/>
   </symbol>
-  <symbol id="i-cart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-    <circle cx="9" cy="20" r="1.4"/><circle cx="17" cy="20" r="1.4"/>
-    <path d="M3 3.5h2.4l2.3 12h10.6l2.2-8.5H6.1"/>
-  </symbol>
 </svg>
 
 <div id="app">
   <header>
     <svg class="brand-ic"><use href="#i-coin"/></svg>
     <h1>Золотая лихорадка</h1>
-    <span class="ver">IDLE&nbsp;v1.2</span>
+    <span class="ver">IDLE&nbsp;v1.3</span>
   </header>
 
   <section class="stats">
@@ -460,12 +455,10 @@
 'use strict';
 
 /* ==================== Telegram WebApp ==================== */
-const tgApi = (window.Telegram && window.Telegram.WebApp)
-  ? window.Telegram.WebApp : null;
 try {
-  if (tgApi){
-    tgApi.ready();
-    tgApi.expand();
+  if (window.Telegram && window.Telegram.WebApp){
+    window.Telegram.WebApp.ready();
+    window.Telegram.WebApp.expand();
   }
 } catch(e){ /* открыто вне Telegram */ }
 
@@ -739,58 +732,19 @@ coinEl.addEventListener('click', e => {
 });
 
 /* ==================== Кнопка доната ====================
-   По правилам платформы Telegram метод sendData() доставляет строку боту
-   и ЗАКРЫВАЕТ мини-апп. Поэтому:
-   1) перед отправкой принудительно сохраняем прогресс;
-   2) трясём вибрацию, если доступна;
-   3) если sendData недоступен (открыли не из меню бота или вне Telegram) —
-      через таймаут понимаем, что приложение НЕ закрылось, и подсказываем. */
+   Отправляем сигнал боту и закрываем мини-приложение.
+   save() стоит ПЕРЕД отправкой: окно сейчас закроется,
+   и баланс должен быть зафиксирован в localStorage заранее. */
 const donateBtn = document.getElementById('donateBtn');
-const DONATE_SIGNAL = 'donate_1m';   // ← ровно эту строку ждёт Python-бот
-let donateGuard = false;
-
-function requestDonate(){
-  if (donateGuard) return;
-  donateGuard = true;
-  donateBtn.classList.add('sending');
-
-  save(); // фиксируем баланс до возможного закрытия окна
-
-  let closedByTelegram = false;
-  try {
-    if (tgApi && typeof tgApi.HapticFeedback !== 'undefined'){
-      tgApi.HapticFeedback.impactOccurred('medium');
-    }
-  } catch(e){}
-
-  try {
-    if (tgApi && typeof tgApi.sendData === 'function'){
-      tgApi.sendData(DONATE_SIGNAL);
-      // Если всё прошло штатно, Telegram свернёт приложение прямо сейчас.
-      closedByTelegram = true;
-      // Страховка: приложение может остаться открытым (запуск не из кнопки меню).
-      setTimeout(() => {
-        if (!closedByTelegram || document.visibilityState === 'visible'){
-          donateReset(
-            'Запрос ушёл боту ✓\nЕсли счёт не пришёл — откройте бота и нажмите «Купить донат»'
-          );
-        }
-      }, 1500);
-    } else {
-      donateReset('Покупка работает только внутри Telegram.\nОткройте игру из чата с ботом 🤖');
-    }
-  } catch(err){
-    console.error('sendData:', err);
-    donateReset('Не получилось связаться с ботом. Попробуйте ещё раз.');
+donateBtn.addEventListener('click', () => {
+  save(); // фиксируем прогресс до закрытия окна
+  if (window.Telegram && window.Telegram.WebApp) {
+    window.Telegram.WebApp.sendData("donate_1m");
+    window.Telegram.WebApp.close();
+  } else {
+    alert("Игра запущена не в Telegram");
   }
-}
-
-function donateReset(msg){
-  donateBtn.classList.remove('sending');
-  donateGuard = false;
-  if (msg) toast(msg);
-}
-donateBtn.addEventListener('click', requestDonate);
+});
 
 /* ==================== Пассивный доход: плавающие цифры ==================== */
 setInterval(() => {
